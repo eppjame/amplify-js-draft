@@ -17,8 +17,6 @@ import { STORAGE_INPUT_KEY } from '../../utils/constants';
 import { calculateContentCRC32 } from '../../utils/crc32';
 import { constructContentDisposition } from '../../utils/constructContentDisposition';
 
-import { validateObjectNotExists } from './validateObjectNotExists';
-
 /**
  * Get a function the returns a promise to call putObject API to S3.
  *
@@ -57,13 +55,6 @@ export const putObjectJob =
 				? await calculateContentMd5(data)
 				: undefined;
 
-		if (preventOverwrite) {
-			await validateObjectNotExists(s3Config, {
-				Bucket: bucket,
-				Key: finalKey,
-			});
-		}
-
 		const { ETag: eTag, VersionId: versionId } = await putObject(
 			{
 				...s3Config,
@@ -81,6 +72,7 @@ export const putObjectJob =
 				Metadata: metadata,
 				ContentMD5: contentMD5,
 				ChecksumCRC32: checksumCRC32?.checksum,
+				IfNoneMatch: preventOverwrite ? '*' : undefined,
 			},
 		);
 

@@ -29,7 +29,6 @@ import {
 } from '../../../utils/client/s3data';
 import { getStorageUserAgentValue } from '../../../utils/userAgent';
 import { logger } from '../../../../../utils';
-import { validateObjectNotExists } from '../validateObjectNotExists';
 
 import { uploadPartExecutor } from './uploadPartExecutor';
 import { getUploadsCacheKey, removeCachedUpload } from './uploadCache';
@@ -186,13 +185,6 @@ export const getMultipartUploadHandlers = (
 
 		await Promise.all(concurrentUploadPartExecutors);
 
-		if (preventOverwrite) {
-			await validateObjectNotExists(resolvedS3Config, {
-				Bucket: resolvedBucket,
-				Key: finalKey,
-			});
-		}
-
 		const { ETag: eTag } = await completeMultipartUpload(
 			{
 				...resolvedS3Config,
@@ -204,6 +196,7 @@ export const getMultipartUploadHandlers = (
 				Key: finalKey,
 				UploadId: inProgressUpload.uploadId,
 				ChecksumCRC32: inProgressUpload.finalCrc32,
+				IfNoneMatch: preventOverwrite ? '*' : undefined,
 				MultipartUpload: {
 					Parts: inProgressUpload.completedParts.sort(
 						(partA, partB) => partA.PartNumber! - partB.PartNumber!,

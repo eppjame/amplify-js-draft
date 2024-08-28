@@ -39,6 +39,7 @@ export type PutObjectInput = Pick<
 	| 'Metadata'
 	| 'Tagging'
 	| 'ChecksumCRC32'
+	| 'IfNoneMatch'
 >;
 
 export type PutObjectOutput = Pick<
@@ -59,6 +60,7 @@ const putObjectSerializer = async (
 		})),
 		...assignStringVariables({ 'content-md5': input.ContentMD5 }),
 		...assignStringVariables({ 'x-amz-checksum-crc32': input.ChecksumCRC32 }),
+		...assignStringVariables({ 'If-None-Match': input.IfNoneMatch }),
 	};
 	const url = new AmplifyUrl(endpoint.url.toString());
 	validateS3RequiredParameter(!!input.Key, 'Key');

@@ -347,6 +347,13 @@ export interface CompleteMultipartUploadRequest {
 	 */
 	ExpectedBucketOwner?: string;
 	/**
+	 * <p>Uploads the object only if the object key name does not already exist in the bucket specified. Otherwise, Amazon S3 returns a <code>412 Precondition Failed</code> error.</p>
+	 *          <p>If a conflicting operation occurs during the upload S3 returns a <code>409 ConditionalRequestConflict</code> response.  On a 409 failure you should re-initiate the multipart upload with <code>CreateMultipartUpload</code> and re-upload each part.</p>
+	 *          <p>Expects the '*' (asterisk) character.</p>
+	 *          <p>For more information about conditional requests, see <a href="https://tools.ietf.org/html/rfc7232">RFC 7232</a>, or <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-requests.html">Conditional requests</a> in the <i>Amazon S3 User Guide</i>.</p>
+	 */
+	IfNoneMatch?: string;
+	/**
 	 * <p>The server-side encryption (SSE) algorithm used to encrypt the object. This parameter is needed only when the object was created
 	 *     using a checksum algorithm. For more information,
 	 *     see <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerSideEncryptionCustomerKeys.html">Protecting data using SSE-C keys</a> in the
@@ -2400,6 +2407,13 @@ export interface PutObjectRequest {
 	 *             <a href="https://www.rfc-editor.org/rfc/rfc7234#section-5.3">https://www.rfc-editor.org/rfc/rfc7234#section-5.3</a>.</p>
 	 */
 	Expires?: Date;
+	/**
+	 * <p>Uploads the object only if the object key name does not already exist in the bucket specified. Otherwise, Amazon S3 returns a <code>412 Precondition Failed</code> error.</p>
+	 *          <p>If a conflicting operation occurs during the upload S3 returns a <code>409 ConditionalRequestConflict</code> response. On a 409 failure you should retry the upload.</p>
+	 *          <p>Expects the '*' (asterisk) character.</p>
+	 *          <p>For more information about conditional requests, see <a href="https://tools.ietf.org/html/rfc7232">RFC 7232</a>, or <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-requests.html">Conditional requests</a> in the <i>Amazon S3 User Guide</i>.</p>
+	 */
+	IfNoneMatch?: string;
 	/**
 	 * <p>Gives the grantee READ, READ_ACP, and WRITE_ACP permissions on the object.</p>
 	 *          <p>This action is not supported by Amazon S3 on Outposts.</p>
