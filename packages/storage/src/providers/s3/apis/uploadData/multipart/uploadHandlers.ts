@@ -30,12 +30,14 @@ import {
 import { getStorageUserAgentValue } from '../../../utils/userAgent';
 import { logger } from '../../../../../utils';
 import { validateObjectNotExists } from '../validateObjectNotExists';
+import { IntegrityError } from '../../../../../errors/IntegrityError';
 
 import { uploadPartExecutor } from './uploadPartExecutor';
 import { getUploadsCacheKey, removeCachedUpload } from './uploadCache';
 import { getConcurrentUploadsProgressTracker } from './progressTracker';
 import { loadOrCreateMultipartUpload } from './initialUpload';
 import { getDataChunker } from './getDataChunker';
+import { calculatePartSize } from './calculatePartSize';
 
 /**
  * Create closure hiding the multipart upload implementation details and expose the upload job and control functions(
@@ -193,6 +195,8 @@ export const getMultipartUploadHandlers = (
 			});
 		}
 
+		validateCompletedParts(inProgressUpload.completedParts, size!);
+
 		const { ETag: eTag } = await completeMultipartUpload(
 			{
 				...resolvedS3Config,
@@ -205,9 +209,7 @@ export const getMultipartUploadHandlers = (
 				UploadId: inProgressUpload.uploadId,
 				ChecksumCRC32: inProgressUpload.finalCrc32,
 				MultipartUpload: {
-					Parts: inProgressUpload.completedParts.sort(
-						(partA, partB) => partA.PartNumber! - partB.PartNumber!,
-					),
+					Parts: sortUploadParts(inProgressUpload.completedParts),
 				},
 			},
 		);
@@ -308,3 +310,23 @@ const resolveAccessLevel = (accessLevel?: StorageAccessLevel) =>
 	accessLevel ??
 	Amplify.libraryOptions.Storage?.S3?.defaultAccessLevel ??
 	DEFAULT_ACCESS_LEVEL;
+
+const validateCompletedParts = (completedParts: Part[], size: number) => {
+	const partsExpected = Math.ceil(size / calculatePartSize(size));
+	const validPartCount = completedParts.length === partsExpected;
+
+	const sorted = sortUploadParts(completedParts);
+	const validPartNumbers = sorted.every(
+		(part, index) => part.PartNumber === index + 1,
+	);
+
+	if (!validPartCount || !validPartNumbers) {
+		throw new IntegrityError();
+	}
+};
+
+const sortUploadParts = (parts: Part[]) => {
+	return [...parts].sort(
+		(partA, partB) => partA.PartNumber! - partB.PartNumber!,
+	);
+};
