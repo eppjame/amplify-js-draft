@@ -42,9 +42,9 @@ const completeMultipartUploadHappyCase: ApiFunctionalTestCase<
 			href: 'https://bucket.s3.us-east-1.amazonaws.com/key?uploadId=uploadId',
 		}),
 		method: 'POST',
-		headers: expect.objectContaining({
+		headers: {
 			'content-type': 'application/xml',
-		}),
+		},
 		body:
 			'<?xml version="1.0" encoding="UTF-8"?>' +
 			'<CompleteMultipartUpload xmlns="http://s3.amazonaws.com/doc/2006-03-01/">' +
@@ -77,6 +77,29 @@ const completeMultipartUploadHappyCase: ApiFunctionalTestCase<
 		Key: 'key',
 		ETag: 'etag',
 	},
+];
+
+// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html
+const completeMultipartUploadHappyCaseIfNoneMatch: ApiFunctionalTestCase<
+	typeof completeMultipartUpload
+> = [
+	'happy case',
+	'completeMultipartUpload - if-none-match',
+	completeMultipartUpload,
+	defaultConfig,
+	{
+		...completeMultipartUploadHappyCase[4],
+		IfNoneMatch: 'mock-if-none-match',
+	},
+	expect.objectContaining({
+		...completeMultipartUploadHappyCase[5],
+		headers: {
+			'content-type': 'application/xml',
+			'If-None-Match': 'mock-if-none-match',
+		},
+	}),
+	completeMultipartUploadHappyCase[6],
+	completeMultipartUploadHappyCase[7],
 ];
 
 // API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html
@@ -141,6 +164,7 @@ const completeMultipartUploadErrorWith200CodeCase: ApiFunctionalTestCase<
 
 export default [
 	completeMultipartUploadHappyCase,
+	completeMultipartUploadHappyCaseIfNoneMatch,
 	completeMultipartUploadErrorCase,
 	completeMultipartUploadErrorWith200CodeCase,
 ];
