@@ -17,7 +17,7 @@ import {
 } from '../../../utils/constants';
 import {
 	ResolvedS3Config,
-	UploadDataOptionsWithKey,
+	UploadDataWithKeyOptions,
 } from '../../../types/options';
 import { StorageError } from '../../../../../errors/StorageError';
 import { CanceledError } from '../../../../../errors/CanceledError';
@@ -30,6 +30,7 @@ import {
 import { getStorageUserAgentValue } from '../../../utils/userAgent';
 import { logger } from '../../../../../utils';
 import { validateObjectNotExists } from '../validateObjectNotExists';
+import { calculateContentCRC32 } from '../../../utils/crc32';
 
 import { uploadPartExecutor } from './uploadPartExecutor';
 import { getUploadsCacheKey, removeCachedUpload } from './uploadCache';
@@ -102,13 +103,17 @@ export const getMultipartUploadHandlers = (
 
 		// Resolve "key" specific options
 		if (inputType === STORAGE_INPUT_KEY) {
-			const accessLevel = (uploadDataOptions as UploadDataOptionsWithKey)
+			const accessLevel = (uploadDataOptions as UploadDataWithKeyOptions)
 				?.accessLevel;
 
 			resolvedKeyPrefix = resolvedS3Options.keyPrefix;
 			finalKey = resolvedKeyPrefix + objectKey;
 			resolvedAccessLevel = resolveAccessLevel(accessLevel);
 		}
+
+		const optionsHash = (
+			await calculateContentCRC32(JSON.stringify(uploadDataOptions))
+		).checksum;
 
 		if (!inProgressUpload) {
 			const { uploadId, cachedParts, finalCrc32 } =
@@ -125,6 +130,8 @@ export const getMultipartUploadHandlers = (
 					data,
 					size,
 					abortSignal: abortController.signal,
+					checksumAlgorithm: uploadDataOptions?.checksumAlgorithm,
+					optionsHash,
 				});
 			inProgressUpload = {
 				uploadId,
@@ -141,6 +148,7 @@ export const getMultipartUploadHandlers = (
 					bucket: resolvedBucket!,
 					size,
 					key: objectKey,
+					optionsHash,
 				})
 			: undefined;
 
@@ -156,7 +164,8 @@ export const getMultipartUploadHandlers = (
 			inProgressUpload?.completedParts.push({
 				PartNumber: partNumber,
 				ETag: eTag,
-				ChecksumCRC32: crc32,
+				// TODO: crc32 can always be added once RN also has an implementation
+				...(crc32 ? { ChecksumCRC32: crc32 } : {}),
 			});
 		};
 		const concurrentUploadsProgressTracker =
