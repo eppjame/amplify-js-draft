@@ -11,13 +11,11 @@ import {
 	DownloadDataWithPathInput,
 	GetPropertiesWithPathInput,
 	GetUrlWithPathInput,
+	ListAllWithPathInput,
+	ListPaginateWithPathInput,
 	RemoveWithPathInput,
 	UploadDataWithPathInput,
 } from '../../providers/s3';
-import {
-	ListAllWithPathInput,
-	ListPaginateWithPathInput,
-} from '../../providers/s3/types/inputs';
 
 import { CredentialsProvider, ListLocationsInput } from './credentials';
 import { Permission, PrefixType, Privilege } from './common';
@@ -48,12 +46,27 @@ export interface GetDataAccessInput {
 /**
  * @internal
  */
-export type ListInput = ExtendInputWithAdvancedOptions<
-	ListAllWithPathInput | ListPaginateWithPathInput,
+export type ListAllInput = ExtendInputWithAdvancedOptions<
+	ListAllWithPathInput,
 	{
 		locationCredentialsProvider?: CredentialsProvider;
 	}
 >;
+
+/**
+ * @internal
+ */
+export type ListPaginateInput = ExtendInputWithAdvancedOptions<
+	ListPaginateWithPathInput,
+	{
+		locationCredentialsProvider?: CredentialsProvider;
+	}
+>;
+
+/**
+ * @internal
+ */
+export type ListInput = ListAllInput | ListPaginateInput;
 
 /**
  * @internal

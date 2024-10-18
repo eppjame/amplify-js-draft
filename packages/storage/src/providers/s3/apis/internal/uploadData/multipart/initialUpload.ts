@@ -1,24 +1,28 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { StorageAccessLevel } from '@aws-amplify/core';
+import {
+	KeyValueStorageInterface,
+	StorageAccessLevel,
+} from '@aws-amplify/core';
 
 import {
 	ContentDisposition,
 	ResolvedS3Config,
+	UploadDataChecksumAlgorithm,
 } from '../../../../types/options';
 import { StorageUploadDataPayload } from '../../../../../../types';
 import { Part, createMultipartUpload } from '../../../../utils/client/s3data';
 import { logger } from '../../../../../../utils';
-import { calculateContentCRC32 } from '../../../../utils/crc32';
 import { constructContentDisposition } from '../../../../utils/constructContentDisposition';
+import { CHECKSUM_ALGORITHM_CRC32 } from '../../../../utils/constants';
+import { getCombinedCrc32 } from '../../../../utils/getCombinedCrc32.native';
 
 import {
 	cacheMultipartUpload,
 	findCachedUploadParts,
 	getUploadsCacheKey,
 } from './uploadCache';
-import { getDataChunker } from './getDataChunker';
 
 interface LoadOrCreateMultipartUploadOptions {
 	s3Config: ResolvedS3Config;
@@ -33,6 +37,10 @@ interface LoadOrCreateMultipartUploadOptions {
 	metadata?: Record<string, string>;
 	size?: number;
 	abortSignal?: AbortSignal;
+	checksumAlgorithm?: UploadDataChecksumAlgorithm;
+	optionsHash: string;
+	resumableUploadsCache?: KeyValueStorageInterface;
+	expectedBucketOwner?: string;
 }
 
 interface LoadOrCreateMultipartUploadResult {
@@ -60,6 +68,10 @@ export const loadOrCreateMultipartUpload = async ({
 	contentEncoding,
 	metadata,
 	abortSignal,
+	checksumAlgorithm,
+	optionsHash,
+	resumableUploadsCache,
+	expectedBucketOwner,
 }: LoadOrCreateMultipartUploadOptions): Promise<LoadOrCreateMultipartUploadResult> => {
 	const finalKey = keyPrefix !== undefined ? keyPrefix + key : key;
 
@@ -71,8 +83,11 @@ export const loadOrCreateMultipartUpload = async ({
 				finalCrc32?: string;
 		  }
 		| undefined;
-	if (size === undefined) {
-		logger.debug('uploaded data size cannot be determined, skipping cache.');
+
+	if (size === undefined || !resumableUploadsCache) {
+		logger.debug(
+			'uploaded data size or cache instance cannot be determined, skipping cache.',
+		);
 		cachedUpload = undefined;
 	} else {
 		const uploadCacheKey = getUploadsCacheKey({
@@ -82,6 +97,7 @@ export const loadOrCreateMultipartUpload = async ({
 			bucket,
 			accessLevel,
 			key,
+			optionsHash,
 		});
 
 		const cachedUploadParts = await findCachedUploadParts({
@@ -89,6 +105,7 @@ export const loadOrCreateMultipartUpload = async ({
 			cacheKey: uploadCacheKey,
 			bucket,
 			finalKey,
+			resumableUploadsCache,
 		});
 		cachedUpload = cachedUploadParts
 			? { ...cachedUploadParts, uploadCacheKey }
@@ -102,7 +119,10 @@ export const loadOrCreateMultipartUpload = async ({
 			finalCrc32: cachedUpload.finalCrc32,
 		};
 	} else {
-		const finalCrc32 = await getCombinedCrc32(data, size);
+		const finalCrc32 =
+			checksumAlgorithm === CHECKSUM_ALGORITHM_CRC32
+				? await getCombinedCrc32(data, size)
+				: undefined;
 
 		const { UploadId } = await createMultipartUpload(
 			{
@@ -117,11 +137,14 @@ export const loadOrCreateMultipartUpload = async ({
 				ContentEncoding: contentEncoding,
 				Metadata: metadata,
 				ChecksumAlgorithm: finalCrc32 ? 'CRC32' : undefined,
+				ExpectedBucketOwner: expectedBucketOwner,
 			},
 		);
 
-		if (size === undefined) {
-			logger.debug('uploaded data size cannot be determined, skipping cache.');
+		if (size === undefined || !resumableUploadsCache) {
+			logger.debug(
+				'uploaded data size or cache instance cannot be determined, skipping cache.',
+			);
 
 			return {
 				uploadId: UploadId!,
@@ -136,8 +159,9 @@ export const loadOrCreateMultipartUpload = async ({
 			bucket,
 			accessLevel,
 			key,
+			optionsHash,
 		});
-		await cacheMultipartUpload(uploadCacheKey, {
+		await cacheMultipartUpload(resumableUploadsCache, uploadCacheKey, {
 			uploadId: UploadId!,
 			bucket,
 			key,
@@ -151,21 +175,4 @@ export const loadOrCreateMultipartUpload = async ({
 			finalCrc32,
 		};
 	}
-};
-
-const getCombinedCrc32 = async (
-	data: StorageUploadDataPayload,
-	size: number | undefined,
-) => {
-	const crc32List: ArrayBuffer[] = [];
-	const dataChunker = getDataChunker(data, size);
-	for (const { data: checkData } of dataChunker) {
-		const checksumArrayBuffer = (await calculateContentCRC32(checkData))
-			?.checksumArrayBuffer;
-		if (checksumArrayBuffer === undefined) return undefined;
-
-		crc32List.push(checksumArrayBuffer);
-	}
-
-	return `${(await calculateContentCRC32(new Blob(crc32List)))?.checksum}-${crc32List.length}`;
 };

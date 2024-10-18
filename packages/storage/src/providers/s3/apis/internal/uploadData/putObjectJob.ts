@@ -4,20 +4,37 @@
 import { Amplify } from '@aws-amplify/core';
 import { StorageAction } from '@aws-amplify/core/internals/utils';
 
-import { UploadDataInput, UploadDataWithPathInput } from '../../../types';
+import { UploadDataInput } from '../../../types';
+// TODO: Remove this interface when we move to public advanced APIs.
+import { UploadDataInput as UploadDataWithPathInputWithAdvancedOptions } from '../../../../../internals/types/inputs';
 import {
 	calculateContentMd5,
 	resolveS3ConfigAndInput,
+	validateBucketOwnerID,
 	validateStorageOperationInput,
 } from '../../../utils';
 import { ItemWithKey, ItemWithPath } from '../../../types/outputs';
 import { putObject } from '../../../utils/client/s3data';
 import { getStorageUserAgentValue } from '../../../utils/userAgent';
-import { STORAGE_INPUT_KEY } from '../../../utils/constants';
+import {
+	CHECKSUM_ALGORITHM_CRC32,
+	STORAGE_INPUT_KEY,
+} from '../../../utils/constants';
 import { calculateContentCRC32 } from '../../../utils/crc32';
 import { constructContentDisposition } from '../../../utils/constructContentDisposition';
 
 import { validateObjectNotExists } from './validateObjectNotExists';
+
+/**
+ * The input interface for UploadData API with only the options needed for single part upload.
+ * It supports both legacy Gen 1 input with key and Gen2 input with path. It also support additional
+ * advanced options for StorageBrowser.
+ *
+ * @internal
+ */
+export type SinglePartUploadDataInput =
+	| UploadDataInput
+	| UploadDataWithPathInputWithAdvancedOptions;
 
 /**
  * Get a function the returns a promise to call putObject API to S3.
@@ -26,7 +43,7 @@ import { validateObjectNotExists } from './validateObjectNotExists';
  */
 export const putObjectJob =
 	(
-		uploadDataInput: UploadDataInput | UploadDataWithPathInput,
+		uploadDataInput: SinglePartUploadDataInput,
 		abortSignal: AbortSignal,
 		totalLength?: number,
 	) =>
@@ -38,6 +55,7 @@ export const putObjectJob =
 			uploadDataInput,
 			identityId,
 		);
+		validateBucketOwnerID(uploadDataOptions?.expectedBucketOwner);
 
 		const finalKey =
 			inputType === STORAGE_INPUT_KEY ? keyPrefix + objectKey : objectKey;
@@ -47,10 +65,16 @@ export const putObjectJob =
 			contentType = 'application/octet-stream',
 			preventOverwrite,
 			metadata,
+			checksumAlgorithm,
 			onProgress,
+			expectedBucketOwner,
 		} = uploadDataOptions ?? {};
 
-		const checksumCRC32 = await calculateContentCRC32(data);
+		const checksumCRC32 =
+			checksumAlgorithm === CHECKSUM_ALGORITHM_CRC32
+				? await calculateContentCRC32(data)
+				: undefined;
+
 		const contentMD5 =
 			// check if checksum exists. ex: should not exist in react native
 			!checksumCRC32 && isObjectLockEnabled
@@ -81,6 +105,7 @@ export const putObjectJob =
 				Metadata: metadata,
 				ContentMD5: contentMD5,
 				ChecksumCRC32: checksumCRC32?.checksum,
+				ExpectedBucketOwner: expectedBucketOwner,
 			},
 		);
 
