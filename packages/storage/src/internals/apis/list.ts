@@ -4,10 +4,23 @@
 import { Amplify } from '@aws-amplify/core';
 
 import { list as listInternal } from '../../providers/s3/apis/internal/list';
-import { ListInput } from '../types/inputs';
-import { ListPaginateWithPathInput } from '../../providers/s3';
+import { ListAllInput, ListInput, ListPaginateInput } from '../types/inputs';
+import {
+	ListAllWithPathOutput,
+	ListPaginateWithPathOutput,
+} from '../../providers/s3';
 import { ListOutput } from '../types/outputs';
 
+/**
+ * @internal
+ */
+export function list(input: ListAllInput): Promise<ListAllWithPathOutput>;
+/**
+ * @internal
+ */
+export function list(
+	input: ListPaginateInput,
+): Promise<ListPaginateWithPathOutput>;
 /**
  * @internal
  */
@@ -19,10 +32,11 @@ export function list(input: ListInput): Promise<ListOutput> {
 			subpathStrategy: input.options?.subpathStrategy,
 			useAccelerateEndpoint: input.options?.useAccelerateEndpoint,
 			listAll: input.options?.listAll,
+			expectedBucketOwner: input.options?.expectedBucketOwner,
 
 			// Pagination options
-			nextToken: (input as ListPaginateWithPathInput).options?.nextToken,
-			pageSize: (input as ListPaginateWithPathInput).options?.pageSize,
+			nextToken: (input as ListPaginateInput).options?.nextToken,
+			pageSize: (input as ListPaginateInput).options?.pageSize,
 			// Advanced options
 			locationCredentialsProvider: input.options?.locationCredentialsProvider,
 		},
