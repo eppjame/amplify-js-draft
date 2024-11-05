@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.5.0](https://github.com/aws-amplify/amplify-js/compare/@aws-amplify/api-graphql@4.4.3...@aws-amplify/api-graphql@4.5.0) (2024-10-29)
+
+### Bug Fixes
+
+- **api-graphql:** events url pattern; non-retryable error handling ([#13970](https://github.com/aws-amplify/amplify-js/issues/13970)) ([e0fdeb7](https://github.com/aws-amplify/amplify-js/commit/e0fdeb7bcbb24822607267b08b2919af5e73f2db))
+
+### Features
+
+- **data:** events client ([#13923](https://github.com/aws-amplify/amplify-js/issues/13923)) ([847fb51](https://github.com/aws-amplify/amplify-js/commit/847fb51acee1ee8585503625a6f73d67265217d0))
+
+## [4.4.3](https://github.com/aws-amplify/amplify-js/compare/@aws-amplify/api-graphql@4.4.2...@aws-amplify/api-graphql@4.4.3) (2024-10-25)
+
+**Note:** Version bump only for package @aws-amplify/api-graphql
+
+## [4.4.2](https://github.com/aws-amplify/amplify-js/compare/@aws-amplify/api-graphql@4.4.1...@aws-amplify/api-graphql@4.4.2) (2024-10-21)
+
+**Note:** Version bump only for package @aws-amplify/api-graphql
+
+## [4.4.1](https://github.com/aws-amplify/amplify-js/compare/@aws-amplify/api-graphql@4.4.0...@aws-amplify/api-graphql@4.4.1) (2024-10-15)
+
+**Note:** Version bump only for package @aws-amplify/api-graphql
+
+# [4.4.0](https://github.com/aws-amplify/amplify-js/compare/@aws-amplify/api-graphql@4.3.3...@aws-amplify/api-graphql@4.4.0) (2024-10-05)
+
+### Features
+
+- Add ability to override api user agent with granular actions ([d95573e](https://github.com/aws-amplify/amplify-js/commit/d95573e071870cd824268082ad0e0730d6699a36))
+
 ## [4.3.3](https://github.com/aws-amplify/amplify-js/compare/@aws-amplify/api-graphql@4.3.2...@aws-amplify/api-graphql@4.3.3) (2024-09-30)
 
 **Note:** Version bump only for package @aws-amplify/api-graphql

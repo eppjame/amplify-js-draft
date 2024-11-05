@@ -6,31 +6,12 @@ import {
 	LocationCredentialsProvider,
 } from '../../providers/s3/types/options';
 
-import { LocationType, Permission } from './common';
+import { LocationType, Permission, StorageAccess } from './common';
 
 /**
  * @internal
  */
 export type CredentialsProvider = LocationCredentialsProvider;
-
-export interface CreateLocationCredentialsStoreInput {
-	handler: GetLocationCredentials;
-}
-
-export interface LocationCredentialsStore {
-	/**
-	 * Get location-specific credentials. It uses a cache internally to optimize performance when
-	 * getting credentials for the same location. It will refresh credentials if they expire or
-	 * when forced to.
-	 */
-	getProvider(option: CredentialsLocation): LocationCredentialsProvider;
-	/**
-	 * Invalidate cached credentials and force subsequent calls to get location-specific
-	 * credentials to throw. It also makes subsequent calls to `getCredentialsProviderForLocation`
-	 * to throw.
-	 */
-	destroy(): void;
-}
 
 export interface LocationCredentials extends Partial<LocationScope> {
 	/**
@@ -38,13 +19,6 @@ export interface LocationCredentials extends Partial<LocationScope> {
 	 */
 	readonly credentials: AWSTemporaryCredentials;
 }
-
-export type GetLocationCredentialsInput = CredentialsLocation;
-export type GetLocationCredentialsOutput = LocationCredentials;
-
-export type GetLocationCredentials = (
-	input: GetLocationCredentialsInput,
-) => Promise<GetLocationCredentialsOutput>;
 
 /**
  * @internal
@@ -106,4 +80,23 @@ export interface LocationAccess extends CredentialsLocation {
 	 * * OBJECT: `'s3://<bucket>/<prefix-with-path>/<object>'`
 	 */
 	readonly type: LocationType;
+}
+
+/**
+ * @internal
+ */
+export interface PathAccess {
+	/** The Amplify backend mandates that all paths conclude with '/*',
+	 * which means the only applicable type in this context is 'PREFIX'. */
+	type: 'PREFIX';
+	permission: StorageAccess[];
+	bucket: string;
+	prefix: string;
+}
+
+/**
+ * @internal
+ */
+export interface ListPathsOutput {
+	locations: PathAccess[];
 }
